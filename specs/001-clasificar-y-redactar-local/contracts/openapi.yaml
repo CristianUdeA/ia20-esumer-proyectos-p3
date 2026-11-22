@@ -1,0 +1,225 @@
+openapi: 3.1.0
+info:
+  title: PQRS local - clasificación y borradores
+  version: 1.0.0
+  description: >-
+    Contrato del servicio FastAPI local P1. El texto y los datos del caso se
+    procesan localmente y no se guardan en logs/RAG ni se envían a Vertex AI.
+    No existe operación de envío al cliente.
+servers:
+  - url: http://127.0.0.1:8000
+    description: Servidor local
+paths:
+  /clasificar:
+    post:
+      operationId: clasificarPqrs
+      summary: Clasifica una PQRS localmente
+      description: >-
+        El texto se mantiene en memoria durante la petición. No se registra ni
+        se transmite a servicios Google Cloud.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClasificarRequest'
+      responses:
+        '200':
+          description: Resultado utilizable o clasificación escalada a revisión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clasificacion'
+        '422':
+          description: Entrada vacía, demasiado extensa o JSON inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /borrador:
+    post:
+      operationId: prepararBorrador
+      summary: Prepara un borrador consultivo con fuentes aprobadas
+      description: >-
+        Retrieval usa solamente taxonomía controlada no identificable. Gemini
+        recibe esa taxonomía y extractos de fuentes aprobadas; no recibe texto,
+        PII, contrato, resumen ni borrador del caso. Si no hay fuente pertinente,
+        la salida se marca exactamente "sin fundamento". Este endpoint nunca
+        libera ni envía una respuesta. Confianza baja, datos requeridos ausentes
+        o conflicto producen revisión requerida sin un borrador listo para liberar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BorradorRequest'
+      responses:
+        '200':
+          description: Borrador, revisión requerida o abstención segura
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorradorResponse'
+        '422':
+          description: Entrada vacía, demasiado extensa o JSON inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /salud:
+    get:
+      operationId: salud
+      summary: Estado local de salud/readiness
+      description: >-
+        No envía contenido de caso ni hace solicitudes de inferencia. Devuelve
+        únicamente estados operativos mínimos; no revela secretos ni valores de
+        configuración sensibles.
+      responses:
+        '200':
+          description: Proceso vivo; status puede ser degraded si una dependencia no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaludResponse'
+components:
+  schemas:
+    ClasificarRequest:
+      type: object
+      additionalProperties: false
+      required: [texto_pqrs]
+      properties:
+        texto_pqrs:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: Texto de PQRS; nunca se registra, persiste ni transmite a Vertex.
+        correlation_id:
+          type: string
+          format: uuid
+          description: Identificador opaco de diagnóstico, sin datos de cliente.
+    BorradorRequest:
+      type: object
+      additionalProperties: false
+      required: [texto_pqrs]
+      properties:
+        texto_pqrs:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: >-
+            Texto procesado localmente. El flujo de generación solo usa
+            etiquetas fijas y fuentes aprobadas.
+        correlation_id:
+          type: string
+          format: uuid
+    Clasificacion:
+      type: object
+      additionalProperties: false
+      required:
+        - cliente
+        - contrato
+        - tipo
+        - categoria
+        - urgencia
+        - resumen
+        - nivel_confianza
+        - motivo
+        - datos_ausentes
+        - revision_requerida
+      properties:
+        cliente:
+          type: [string, 'null']
+        contrato:
+          type: [string, 'null']
+        tipo:
+          type: string
+          enum: [Petición, Queja, Reclamo, Sugerencia]
+        categoria:
+          type: [string, 'null']
+          description: Valor de taxonomía aprobada; null si no puede identificarse.
+        urgencia:
+          type: [string, 'null']
+          description: Valor de taxonomía aprobada; null si no puede identificarse.
+        resumen:
+          type: [string, 'null']
+          description: Solo respuesta en memoria; nunca persistir ni registrar.
+        nivel_confianza:
+          type: number
+          minimum: 0
+          maximum: 1
+        motivo:
+          type: string
+        datos_ausentes:
+          type: array
+          items:
+            type: string
+        revision_requerida:
+          type: boolean
+    Cita:
+      type: object
+      additionalProperties: false
+      required: [source_id, version, ubicacion, fragmento]
+      properties:
+        source_id:
+          type: string
+        version:
+          type: string
+        ubicacion:
+          type: string
+          description: Página, cláusula, tarifa o artículo verificable.
+        fragmento:
+          type: string
+    BorradorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - texto_borrador
+        - estado
+        - citas
+        - revision_requerida
+        - bloqueado_para_liberacion
+        - motivo_revision
+      properties:
+        texto_borrador:
+          type: [string, 'null']
+          description: Texto consultivo; nunca enviado por este servicio.
+        estado:
+          type: string
+          enum: [fundamentado, sin fundamento, revision_requerida, no_disponible]
+        citas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cita'
+        revision_requerida:
+          type: boolean
+        bloqueado_para_liberacion:
+          type: boolean
+          const: true
+        motivo_revision:
+          type: [string, 'null']
+          description: Código o motivo seguro, sin copiar el texto del caso.
+    SaludResponse:
+      type: object
+      additionalProperties: false
+      required: [status, components]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        components:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [ready, unavailable, not_configured]
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, message, review_required]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+          description: Mensaje genérico sin incluir texto de PQRS ni datos personales.
+        review_required:
+          type: boolean
