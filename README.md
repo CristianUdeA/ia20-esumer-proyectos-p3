@@ -57,13 +57,15 @@ ConectaHogar presta internet de fibra a **6.000 suscriptores** en Bello. Tiene u
 
 | Código | Requisito |
 |---|---|
-| RF1 | Toda PQRS que llega por correo o formulario recibe un número de radicado y un acuse de recibo. |
+| RF1 | Toda PQRS que llega por correo o formulario recibe un número de radicado; el acuse se envía solo después de una aprobación registrada en `aprobado_por`. |
 | RF2 | Se extraen a una ficha estándar: cliente, contrato, canal, tipo (P/Q/R/S), categoría, urgencia y resumen. |
 | RF3 | La ficha se asigna al área según la categoría. |
 | RF4 | Se calcula la fecha límite en días hábiles (sin fines de semana ni festivos). |
 | RF5 | Tres días hábiles antes de la fecha límite, si el caso no está cerrado, se alerta al área y a la analista. |
 | RF6 | La IA propone un borrador de respuesta; una persona lo aprueba o lo edita antes de enviarlo. |
 | RF7 | Los casos que la IA no puede clasificar con seguridad van a una cola de revisión manual. |
+| RF8 | Todo borrador generado identifica una cita verificable del contrato, tarifa o norma aplicable; si no tiene fuente, se marca «sin fundamento» y pasa a revisión manual. |
+| RF9 | Ninguna respuesta sale al cliente sin un `aprobado_por` válido asociado a la respuesta final. |
 
 ### 1.5 Requisitos no funcionales
 
@@ -73,6 +75,7 @@ ConectaHogar presta internet de fibra a **6.000 suscriptores** en Bello. Tiene u
 | RNF2 | Los textos de los clientes se tratan como **datos, no como instrucciones** (defensa contra inyección de prompt). |
 | RNF3 | Datos personales protegidos (Ley 1581). |
 | RNF4 | Costo cero o casi cero. |
+| RNF5 | Las PQRS con datos personales no se incorporan al índice del RAG ni se copian a registros de texto; los logs contienen solo metadatos operativos mínimos. |
 
 ### 1.6 Restricciones
 
@@ -161,7 +164,9 @@ radicado, fecha_recepcion, canal, texto_original, cliente, contrato, tipo (P/Q/R
 | R3 | Categoría → área: técnica → Técnica; facturación → Facturación; el resto → Servicio al cliente |
 | R4 | `confianza_ia = Baja` o JSON inválido → "En revisión manual" |
 | R5 | Urgencia Alta = cliente sin servicio; se asigna en menos de 1 hora |
-| R6 | Ninguna respuesta sale sin `aprobado_por` |
+| R6 | El envío valida un `aprobado_por` no vacío y asociado a la respuesta final; si falta o no es válido, bloquea el envío |
+| R7 | Cada borrador generado cita contrato, tarifa o norma verificable; sin fuente → «sin fundamento» y revisión manual |
+| R8 | No se indexa ni se registra en logs de texto el contenido de PQRS con datos personales; los logs usan metadatos mínimos |
 
 ### 3.4 Diseño del modelo de ML
 
@@ -183,9 +188,11 @@ radicado, fecha_recepcion, canal, texto_original, cliente, contrato, tipo (P/Q/R
 | 2 | Paso de IA: prompt P1 → JSON |
 | 3 | Validar el JSON (campos completos, valores dentro de las listas). Si falla → "En revisión manual" |
 | 4 | **Llamada a API:** consultar los festivos de Colombia del año (por ejemplo, el servicio público Nager.Date) y calcular la fecha límite. La lista se guarda en la hoja Festivos por si la API falla |
-| 5 | Asignar el área y enviar el acuse al cliente con el radicado (plantilla fija, sin IA) |
-| 6 | Paso de IA: prompt P2 → borrador de respuesta, guardado en la hoja |
-| Control humano | El área edita y aprueba en la app; el escenario C envía la respuesta solo si hay `aprobado_por` |
+| 5 | Asignar el área y preparar el acuse al cliente con el radicado (plantilla fija, sin IA); el envío queda bloqueado hasta registrar `aprobado_por` |
+| 6 | Paso de IA: prompt P2 → borrador y cita de cláusula, tarifa o artículo; un validador comprueba que la fuente está en la base aprobada |
+| 7 | Si falta una fuente verificable, marcar el borrador «sin fundamento» y enviarlo a revisión manual; no permitir su envío como respuesta |
+| Control humano | El área edita y aprueba en la app; el escenario C comprueba `aprobado_por` contra la respuesta final inmediatamente antes de enviar |
+| Privacidad | No copiar textos, prompts ni extractos de PQRS con datos personales a índices RAG o logs de texto; registrar solo metadatos mínimos |
 | Escenario B | Cada día a las 8:00 a. m.: casos con 12 o más días hábiles sin respuesta → alerta |
 
 ### 3.6 Prompts clave
@@ -236,6 +243,9 @@ LLM (H1–H2). Gamma, Canva, v0.dev o LLM y AppSheet (H3). Orange con el complem
 | T6 | PQRS recibida un viernes antes de un puente festivo | Fecha límite calculada sin festivos |
 | T7 | La API de festivos no responde | Se usa la hoja Festivos guardada |
 | T8 | Borrador que promete un descuento | El prompt lo impide; si aparece, la revisión humana lo detecta (se documenta) |
+| T9 | Borrador sin una cita presente en la base aprobada | Se marca «sin fundamento», se envía a revisión y no se puede enviar al cliente |
+| T10 | Intento de enviar una respuesta o acuse sin `aprobado_por` válido | El envío se bloquea; la aprobación debe corresponder al texto final |
+| T11 | PQRS sintética con dato personal canario en la entrada | El contenido no aparece en el índice RAG ni en logs de texto; solo se conservan metadatos operativos mínimos |
 
 ### 4.4 Guion del Demo Day
 
@@ -299,4 +309,6 @@ Enlaces para construir el dataset de PQRS de la sección 3.4. No hay un dataset 
 - [ ] Hay casos difíciles: mensajes que mezclan falla técnica y facturación, mensajes muy cortos y mensajes con groserías.
 - [ ] El equipo revisó a mano al menos 60 etiquetas antes de entrenar.
 - [ ] Ningún mensaje tiene datos personales reales.
+- [ ] Ningún texto de PQRS con datos personales llega al índice del RAG ni a registros de texto.
+- [ ] Cada borrador cita una fuente verificable o queda marcado «sin fundamento» y en revisión manual.
 - [ ] Se citó cada fuente con su licencia.

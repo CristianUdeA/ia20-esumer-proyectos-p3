@@ -14,7 +14,7 @@ Esta ficha resume **cómo se construye el proyecto** en la etapa final del curso
 | **Machine Learning** | Orange con el complemento *Text* (referencia frente al LLM) |
 | **Conexión modelo–flujo** | El LLM clasifica en el flujo y Orange sirve de referencia de validación |
 | **Orquestación** | Make + AppSheet |
-| **Base de conocimiento del RAG** | Contrato, plan de tarifas y régimen de usuarios |
+| **Base de conocimiento del RAG** | Contrato, plan de tarifas y régimen de usuarios; excluye PQRS y datos personales |
 | **Complejidad del despliegue** | Medio |
 | **Código del proyecto** | `p03` |
 | **Servicio en Cloud Run** | `pqrs-a-tiempo` |
@@ -39,9 +39,9 @@ Las specs que genera Spec Kit quedan en `specs/` (y su configuración en `.speci
 
 El borrador de respuesta debe ser correcto frente al contrato y la norma, no solo empático. Con RAG cita la cláusula, la tarifa o el artículo del régimen de usuarios que aplica, y el área solo verifica y aprueba.
 
-| ✅ Va al RAG | ❌ No va al RAG |
+| ✅ Va al RAG | ❌ No va al RAG ni a registros de texto |
 |---|---|
-| Contrato de servicio y plan de tarifas | El texto de las PQRS (datos personales) |
+| Contrato de servicio y plan de tarifas | El texto de las PQRS con datos personales |
 | Procedimiento interno de PQRS | Los días hábiles (regla + API de festivos) |
 | Resumen del régimen de usuarios (CRC, 15 días hábiles) | La aprobación (la da una persona) |
 
@@ -49,11 +49,15 @@ El borrador de respuesta debe ser correcto frente al contrato y la norma, no sol
 
 ## 3. Principios propios de la constitución
 
-El archivo `.specify/memory/constitution.md` del equipo parte de los **7 principios comunes** (ver el [flujo de trabajo](../../README.md#flujo-de-trabajo-y-cronograma)) y suma estos, propios del proyecto:
+La constitución `.specify/memory/constitution.md` aplica Spec-Driven Development,
+«la IA propone y la persona decide» y diseño para el fallo, además de estas reglas
+propias del proyecto:
 
-1. Nada sale al cliente sin `aprobado_por`.
-2. Borrador sin fuente → «sin fundamento» y revisión.
-3. Las PQRS no se guardan en el índice ni en los registros.
+1. Nada sale al cliente sin un `aprobado_por` válido, asociado a la respuesta final.
+2. Todo borrador generado cita contrato, tarifa o norma; sin fuente verificable →
+   «sin fundamento» y revisión manual.
+3. Las PQRS con datos personales no se guardan en el índice RAG ni en registros
+   de texto; los logs contienen solo metadatos operativos mínimos.
 
 ## 4. Specs de Spec Kit
 
