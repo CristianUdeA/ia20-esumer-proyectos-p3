@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Entornos y sistema
+.env
+.DS_Store
+Thumbs.db
+
+# VS Code (opcional, si no quieres compartir tu configuración local)
+.vscode/
