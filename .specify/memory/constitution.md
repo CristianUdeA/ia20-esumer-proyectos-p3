@@ -123,4 +123,4 @@ sin cambio semántico. La persona responsable y quienes revisan MUST verificar
 el cumplimiento en las etapas de especificación, diseño, implementación y
 liberación.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): fecha original no documentada | **Last Amended**: 2026-11-22
+**Version**: 1.0.0 | **Ratified**: 2026-11-26 | **Last Amended**: 2026-11-26

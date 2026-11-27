@@ -1,0 +1,41 @@
+texto,tipo_esperado
+"Solicito una copia de mi factura.",Petición
+"Quisiera conocer los planes disponibles.",Petición
+"Necesito trasladar mi servicio a otra dirección.",Petición
+"Deseo solicitar información sobre cobertura.",Petición
+"Solicito los documentos para pagar por PSE.",Petición
+"Quisiera una copia de las facturas anteriores.",Petición
+"Necesito conocer la fecha de corte.",Petición
+"Solicito revisar el trámite de instalación.",Petición
+"Deseo información sobre el horario de atención.",Petición
+"Quisiera solicitar una visita técnica.",Petición
+"El internet está lento y no carga páginas.",Queja
+"No funciona el servicio desde ayer.",Queja
+"El wifi se desconecta constantemente.",Queja
+"Tengo problemas con la señal del modem.",Queja
+"La conexión falla todas las tardes.",Queja
+"La televisión no tiene señal.",Queja
+"El router no permite navegar.",Queja
+"La velocidad es inferior a la contratada.",Queja
+"El servicio no está disponible.",Queja
+"Los equipos pierden conexión.",Queja
+"Me cobraron dos veces el mismo mes.",Reclamo
+"Exijo la devolución del cobro duplicado.",Reclamo
+"La factura tiene un cobro indebido.",Reclamo
+"Quiero que devuelvan el dinero cobrado.",Reclamo
+"La reconexión aparece sin haber sido suspendido.",Reclamo
+"Rechazo el aumento de la factura.",Reclamo
+"Exijo que corrijan mi factura.",Reclamo
+"Me cobraron una instalación que era gratuita.",Reclamo
+"Solicito reembolso por el servicio no prestado.",Reclamo
+"No acepto el cobro adicional.",Reclamo
+"Sería útil recibir alertas por mantenimiento.",Sugerencia
+"Sugiero habilitar pagos desde la aplicación.",Sugerencia
+"Propongo avisar antes de interrupciones.",Sugerencia
+"Sería conveniente mejorar el canal de atención.",Sugerencia
+"Podrían agregar reportes mensuales de consumo.",Sugerencia
+"Sugiero una opción para reprogramar visitas.",Sugerencia
+"Mejoraría el servicio enviar notificaciones.",Sugerencia
+"Propongo mostrar el estado de las solicitudes.",Sugerencia
+"Sería útil ampliar el horario de soporte.",Sugerencia
+"Sugiero incluir una guía de diagnóstico.",Sugerencia

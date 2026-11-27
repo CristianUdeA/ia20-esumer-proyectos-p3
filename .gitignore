@@ -11,3 +11,13 @@ Thumbs.db
 
 # VS Code (opcional, si no quieres compartir tu configuración local)
 .vscode/
+.idea/
+*.log
+*.tmp
+*.swp
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
